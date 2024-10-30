@@ -2,7 +2,7 @@ version: '3'
 services:
 
   namenode:
-    image: fjardim/namenode_sqoop
+    image: kiko/namenode_sqoop
     container_name: namenode
     hostname: namenode
     volumes:
@@ -19,12 +19,11 @@ services:
           memory: 500m
   
   datanode:
-    image: fjardim/datanode
+    image: kiko/datanode
     container_name: datanode
     hostname: datanode
     volumes:
       - ./data/hdfs/datanode:/hadoop/dfs/data
-      #- ./data/hadoop/bank:/bank
     env_file:
       - ./data/hadoop/hadoop-hive.env
     environment:
@@ -39,7 +38,7 @@ services:
           memory: 500m
   
   hive-server:
-    image: fjardim/hive
+    image: kiko/hive
     container_name: hive-server
     hostname: hive_server
     env_file:
@@ -59,7 +58,7 @@ services:
           memory: 500m
   
   hive-metastore:
-    image: fjardim/hive
+    image: kiko/hive
     container_name: hive_metastore
     hostname: hive_metastore
     env_file:
@@ -77,11 +76,10 @@ services:
           memory: 500m
   
   hive-metastore-postgresql:
-    image: fjardim/hive-metastore
+    image: kiko/hive-metastore
     container_name: hive-metastore-postgresql
     hostname: hive_metastore_postgresql
     volumes:
-      #- ./data/postgresql:/var/lib/postgresql/data
       - pgdata:/var/lib/postgresql/data
     depends_on:
       - datanode
@@ -91,12 +89,12 @@ services:
           memory: 500m
 
   hue:
-    image: fjardim/hue
+    image: kiko/hue
     hostname: hue
     container_name: hue
     dns: 8.8.8.8
     ports:
-    - "8888:8888"
+      - "8888:8888"
     volumes:
       - ./data/hue/hue-overrides.ini:/usr/share/hue/desktop/conf/z-hue.ini
     depends_on:
@@ -107,28 +105,28 @@ services:
           memory: 500m
   
   database:
-    image: fjardim/mysql
+    image: kiko/mysql
     container_name: database
     hostname: database
     ports:
-        - "33061:3306"
+      - "33061:3306"
     deploy:
       resources:
         limits:
           memory: 500m
     command: mysqld --innodb-flush-method=O_DSYNC --innodb-use-native-aio=OFF --init-file /data/application/init.sql
     volumes:
-        - ./data/mysql/data:/var/lib/mysql
-        - ./data/init.sql:/data/application/init.sql
+      - ./data/mysql/data:/var/lib/mysql
+      - ./data/init.sql:/data/application/init.sql
     environment:
-        MYSQL_ROOT_USER: root
-        MYSQL_ROOT_PASSWORD: secret
-        MYSQL_DATABASE: hue
-        MYSQL_USER: root
-        MYSQL_PASSWORD: secret
+      MYSQL_ROOT_USER: root
+      MYSQL_ROOT_PASSWORD: secret
+      MYSQL_DATABASE: hue
+      MYSQL_USER: root
+      MYSQL_PASSWORD: secret
 
   zookeeper:
-    image: fjardim/zookeeper
+    image: kiko/zookeeper
     container_name: zookeeper
     hostname: zookeeper
     ports:
@@ -141,13 +139,11 @@ services:
           memory: 500m
 
   kafka:
-    image: fjardim/kafka
+    image: kiko/kafka
     container_name: kafka
     hostname: kafka
     ports:
       - "9092:9092"
-    #volumes:
-    #  - ./data/kafka:/kafka/kafka-logs-kafka
     depends_on:
       - zookeeper
     environment:
@@ -159,7 +155,7 @@ services:
           memory: 500m
 
   presto-coordinator:
-    image: fjardim/prestodb
+    image: kiko/prestodb
     container_name: presto
     hostname: presto
     ports:
@@ -172,7 +168,7 @@ services:
           memory: 500m
 
   hbase-master:
-    image: fjardim/hbase-master
+    image: kiko/hbase-master
     container_name: hbase-master
     hostname: hbase-master
     env_file:
@@ -189,10 +185,9 @@ services:
           memory: 500m
     
   mongo:
-    image: fjardim/mongo
+    image: kiko/mongo
     container_name: mongo
     hostname: mongo
-    #restart: always
     environment:
       MONGO_INITDB_ROOT_USERNAME: root
       MONGO_INITDB_ROOT_PASSWORD: root
@@ -206,10 +201,9 @@ services:
           memory: 500m
  
   mongo-express:
-    image: fjardim/mongo-express
+    image: kiko/mongo-express
     container_name: mongo_express
     hostname: mongo_express
-    #restart: always
     ports:
       - 8081:8081
     environment:
@@ -222,7 +216,7 @@ services:
           memory: 200m
  
   kafkamanager:
-    image: fjardim/kafkamanager
+    image: kiko/kafkamanager
     container_name: kafkamanager
     hostname: kafkamanager
     environment: 
@@ -237,7 +231,7 @@ services:
           memory: 200m
  
   metabase:
-    image: fjardim/metabase
+    image: kiko/metabase
     container_name: metabase
     hostname: metabase
     volumes:
@@ -250,9 +244,9 @@ services:
       resources:
         limits:
           memory: 500m
- 
+
   nifi:
-    image: fjardim/nifi
+    image: kiko/nifi
     container_name: nifi
     hostname: nifi
     volumes:
@@ -269,7 +263,7 @@ services:
           memory: 500m
 
   jupyter-notebook-custom:
-    image: fjardim/jupyter-spark
+    image: kiko/jupyter-spark
     hostname: jupyter-spark
     container_name: jupyter-spark
     command: notebook
@@ -279,16 +273,35 @@ services:
       - 8889:8889
       - 4040:4040
     volumes:
-       - ./data/notebooks:/mnt/notebooks/
+      - ./data/notebooks:/mnt/notebooks/
     environment:
-       SPARK_MASTER: local[*]
-       JUPYTER_PORT: 8889
+      SPARK_MASTER: local[*]
+      JUPYTER_PORT: 8889
     deploy:
       resources:
         limits:
           memory: 1g
 
+  airflow:
+    image: apache/airflow:2.6.2
+    container_name: airflow
+    hostname: airflow
+    environment:
+      AIRFLOW__CORE__EXECUTOR: LocalExecutor
+      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: sqlite:////root/airflow/airflow.db
+      AIRFLOW__API__AUTH_BACKEND: airflow.api.auth.backend.basic
+    ports:
+      - "8080:8080"
+    volumes:
+      - ./data/airflow/dags:/usr/local/airflow/dags
+      - ./data/airflow/logs:/usr/local/airflow/logs
+      - ./data/airflow/plugins:/usr/local/airflow/plugins
+    command: ["webserver"]
+    deploy:
+      resources:
+        limits:
+          memory: 500m
+
 volumes:
   pgdata:
-   driver: local
-
+    driver: local
